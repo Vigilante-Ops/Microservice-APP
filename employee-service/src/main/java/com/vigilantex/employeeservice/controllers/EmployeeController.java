@@ -5,6 +5,7 @@ import com.vigilantex.employeeservice.entity.Department;
 import com.vigilantex.employeeservice.entity.Employee;
 import com.vigilantex.employeeservice.repository.EmployeeRepo;
 import com.vigilantex.employeeservice.services.APIClient;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,7 @@ public class EmployeeController
     }
 
     @GetMapping("getEmployee")
+    @CircuitBreaker(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment")
     public ResponseEntity<employeeDTO> getEmployee(@RequestBody Employee employee)
     {
        Department department= apiClient.getDepartment(employee.getDepartmentCode());
@@ -46,5 +48,20 @@ public class EmployeeController
 
        return new ResponseEntity<>(e,HttpStatus.OK);
 
+    }
+    public ResponseEntity<employeeDTO> getDefaultDepartment(@RequestBody Employee employee,Throwable th)
+    {
+
+        Employee employeefetch=employeeRepo.findByEmailId(employee.getEmailId());
+        employeeDTO e=new employeeDTO();
+        e.setId(employeefetch.getId());
+        e.setEmailId(employeefetch.getEmailId());
+        e.setFirstName(employeefetch.getFirstName());
+        e.setLastName(employeefetch.getLastName());
+        e.getDepartment().setDepartmentCode("DEFAULT CODE");
+        e.getDepartment().setId(111111L);
+        e.getDepartment().setDepartmentName("DEFAULT NAME");
+        e.getDepartment().setGetDepartmentDescription("DEFAULT DEPARTMENT DESCRIPTION");
+        return new ResponseEntity<>(e,HttpStatus.OK);
     }
 }
